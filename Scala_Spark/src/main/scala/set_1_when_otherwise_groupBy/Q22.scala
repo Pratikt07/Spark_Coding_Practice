@@ -45,5 +45,47 @@ object Q22 {
 
     patCatDF.filter(col("risk_category") === "Moderate Risk"  && col("icu_admissions") > 2 && col("admission_type") === "ICU")show()
 
+//    -----------------------------------------------------------------------------------------------------------------------------------
+//    SQL Solution
+
+    patients.createOrReplaceTempView("patients")
+
+    val patCatSQL = spark.sql("""
+  SELECT *,
+         CASE
+             WHEN readmission_interval < 15 AND age > 60 THEN 'High Readmission Risk'
+             WHEN readmission_interval BETWEEN 15 AND 30 THEN 'Moderate Risk'
+             ELSE 'Low Risk'
+         END AS risk_category
+  FROM patients
+""")
+    patCatSQL.createTempView("patCat")
+
+    val result1 = spark.sql("""
+  SELECT risk_category, COUNT(patient_id) AS patients_count
+  FROM patCat
+  GROUP BY risk_category
+""")
+
+    result1.show()
+
+    val result2 = spark.sql("""
+  SELECT risk_category, AVG(readmission_interval) AS avg_readmission_interval
+  FROM patCat
+  GROUP BY risk_category
+""")
+
+    result2.show()
+
+    val result3 = spark.sql("""
+  SELECT *
+  FROM patCat
+  WHERE risk_category = 'Moderate Risk'
+    AND icu_admissions > 2
+    AND admission_type = 'ICU'
+""")
+
+    result3.show()
+
   }
 }

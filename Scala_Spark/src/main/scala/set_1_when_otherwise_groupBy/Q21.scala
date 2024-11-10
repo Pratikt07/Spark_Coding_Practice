@@ -51,17 +51,56 @@ object Q21 {
       .orderBy(col("transaction_category")).show()
 
     transactionsCategory.filter(col("transaction_category") === "Low Risk" && col("account_type") === "Savings" && col("amount") > 7500).show()
-//---------------------------------------------------------------------------------------------------------------------------------------------
-//    SQL Solution
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+    //    SQL Solution
 
     transactions.createTempView("transactions")
 
     val transactionCat = spark.sql(
       """
-        SELECT *,
+   SELECT *,
          CASE
-          WHEN
-        """)
+             WHEN amount > 10000 AND frequency > 5 THEN 'High Risk'
+             WHEN amount BETWEEN 5000 AND 10000 AND frequency BETWEEN 2 AND 5 THEN 'Moderate Risk'
+             ELSE 'Low Risk'
+         END AS transaction_category
+  FROM transactions
+""")
+
+    transactionCat.createTempView("transactionsCategory")
+
+    val result1 = spark.sql(
+      """
+  SELECT transaction_category, COUNT(account_id) AS No_Of_Transaction
+  FROM transactionsCategory
+  GROUP BY transaction_category
+""")
+
+    result1.show()
+
+    val result2 = spark.sql(
+      """
+  SELECT account_id, transaction_category,
+         COUNT(transaction_category) AS category_count,
+         SUM(amount) AS total_amount
+  FROM transactionsCategory
+  WHERE transaction_category = 'High Risk'
+  GROUP BY account_id, transaction_category
+  ORDER BY transaction_category
+""")
+
+    result2.show()
+
+    val result3 = spark.sql(
+      """
+  SELECT *
+  FROM transactionsCategory
+  WHERE transaction_category = 'Low Risk'
+    AND account_type = 'Savings'
+    AND amount > 7500
+""")
+
+    result3.show()
 
 
   }
